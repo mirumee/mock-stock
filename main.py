@@ -8,9 +8,12 @@ import aiosqlite
 import httpx
 from faker import Faker
 from fastapi import BackgroundTasks, FastAPI, Form, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
+import structlog
 
 fake = Faker()
+
+log = structlog.get_logger()
 
 
 async def send_requests(
@@ -179,13 +182,17 @@ async def initialize_stock(
     return StreamingResponse(stream_data(), media_type="text/csv")
 
 
-@app.post("/test/")
-async def test(request: Request):
+@app.post("/receiver/")
+async def receiver(request: Request, status_code: int = 200):
     """
-    Endpoint used as a webhook tester.
+    Endpoint for testing webhooks.
+
+    By setting status_code get param you can control request status.
+    Good option for checking how integration works with different statuses.
     """
-    body = await request.body()
-    return body
+    content = await request.body()
+    log.info("Receiver request", body=content)
+    return Response(content=content, status_code=status_code)
 
 
 if __name__ == "__main__":
